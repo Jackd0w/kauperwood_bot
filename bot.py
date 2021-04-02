@@ -1,14 +1,14 @@
 import telebot
-import config
 
 #TODO add API for 24/7 monitoring
 #TODO read documentation for flixer
-#TODO JSON parser
+#TODO XML parsing
+#TODO Valute converting
 
 
 
 
-bot = telebot.TeleBot(config.TOKEN)
+bot = telebot.TeleBot('AAH09RbJa1dhxpC3NTFL_BJzjW-aQ1uv4SE')
 
 currencies = ['евро', 'доллар']
 
