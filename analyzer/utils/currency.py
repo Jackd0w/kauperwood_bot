@@ -1,35 +1,29 @@
-import parser
 from bs4 import BeautifulSoup
 from decimal import Decimal
+import xmltodict
+import requests
+import json
+import re
+
+url = 'https://currate.ru/api/?get=rates&pairs=USDRUB,EURRUB&key=218a941a6f3162cc2c4a17258e4f390e'
+
+def load_exchange():
+    return json.loads(str(requests.get(url)[4:]))
 
 
+def get_exchange(ccy_key):
+    for exc in load_exchange():
+        if ccy_key == exc['CharCode']:
+            return exc
+    return False
 
-def convert(amount, cur_from, cur_to, date, requests):
-    if cur_from != 'RUR':
-        params = {
-            'date_req': date
-        }
-        response = requests.get('https://www.cbr.ru/scripts/XML_daily.asp',
-                                params=params)  # Использовать переданный requests
-        text = BeautifulSoup(response.content, 'xml')
-        nominal = ''
-        value = ''
-        for i in text.find_all('Valute'):
-            if i.CharCode.text == cur_from:
-                nominal = Decimal(i.Nominal.text)
-                value = i.Value.text.replace(',', '.')
-        amount = Decimal(amount) * Decimal(value) / nominal
-    params = {
-        'date_req': date
-    }
-    response = requests.get('https://www.cbr.ru/scripts/XML_daily.asp',
-                            params=params)  # Использовать переданный requests
-    text = BeautifulSoup(response.content, 'lxml')
-    nominal = ''
-    value = ''
-    for i in text.find_all('Valute'):
-        if i.CharCode.text == cur_to:
-            nominal = Decimal(i.Nominal.text)
-            value = i.Value.text.replace(',', '.')
-    result = Decimal(amount) * nominal / Decimal(value)
-    return result.quantize(Decimal('0.1111'))  # не забыть про округление до 4х знаков после запятой
+
+def get_exchanges(ccy_pattern):
+    result = []
+    ccy_pattern = re.escape(ccy_pattern) + '.*'
+    for exc in load_exchange():
+        if re.match(ccy_pattern, exc['CharCode'], re.IGNORECASE) is not None:
+            result.append(exc)
+    return result
+    
+
