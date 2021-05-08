@@ -1,48 +1,46 @@
 import telebot
-import config
+import datetime
+import json
+from logging import getLogger
+from collections import namedtuple
+import xmltodict
+import requests
 
-#TODO add API for 24/7 monitoring
-#TODO read documentation for flixer
-#TODO JSON parser
+logger = getLogger(__name__)
 
+Rate = namedtuple('Rate', 'name,rate')
 
-
-
-bot = telebot.TeleBot(config.TOKEN)
-
-currencies = ['евро', 'доллар']
-
-def check_currency(message):
-    for c in currencies:
-        if c in message.text.lower():
-            return True
-        return False
-
-
-def check_currency_value(text):
-    currency_value = {'евро' : 70, 'доллар' : 60}
-    for currency, value in currency_value.items():
-        if currency in text.lower():
-            return currency, value
-
-    return None, None
-
-@bot.message_handler(func=check_currency)
-def handle_currency(message):
-    print(message)
-    currency, value = check_currency_value(message.text())
-    if currency:
-        bot.send_message(message.chat.id, text='Курс {} равен {}.'.format(currency, value))
-
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    bot.reply_to(message, "Привет, как дела?")
+def str_to_float(item: str) -> float:
+    item = item.replace(',', '.')
+    return float(item)
 
 
 
-@bot.message_handler(content_types = ['photo'])
-def text_handler(message):
-    chat_id = message.chat.chat.id
-    bot.send_message(chat_id, "Красиво, но команды должны быть текстовыми")
+def get_rates(section_id):
+    get_url = "http://www.cbr.ru/scripts/XML_daily.asp?"
+    date_format = "%d/%m/%Y"
 
-bot.polling(none_stop=True, interval=0)
+    today = datetime.datetime.today()
+    params = {
+        "date_req": today.strftime(date_format),
+    }
+    r = requests.get(get_url, params=params)
+    resp = r.text 
+    print(resp)
+
+    data = xmltodict.parse(resp)
+    print(json.dumps(data, indent = 2))
+
+    rate = None
+    currency_name = None
+
+    for item in data['ValCurs']['Valute']:
+        if item['@ID'] == section_id:
+            r = Rate(
+                name = item['CharCode'],
+                rate = str_to_float(item['Value'])
+            )
+            
+            print(r)
+            return(r)
+            break
